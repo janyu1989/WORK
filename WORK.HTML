@@ -2,43 +2,192 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPS 驗證打卡</title>
-</head>
-<body style="text-align: center; padding-top: 50px; font-family: sans-serif;">
-    <h2>📍 辦公室區域打卡</h2>
-    <form id="checkInForm">
-        <select id="workerName" style="width: 85%; padding: 15px; margin-bottom: 25px; font-size: 18px; border-radius: 8px; border: 1px solid #ccc;" required>
-            <option value="">請選擇姓名</option>
-            <option value="布萊德">布萊德</option>
-            <option value="小岱">小岱</option>
-            <option value="Una">Una</option>
-            <option value="妹妹">妹妹</option>
-        </select><br>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LOVE SALON 打卡系統</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            padding-top: 60px;
+            box-sizing: border-box;
+        }
 
-        <div style="display: flex; justify-content: center; gap: 15px; width: 85%; margin: 0 auto;">
-            <button type="button" class="btn-action" data-action="上班" style="flex: 1; padding: 20px; background: #28a745; color: white; font-size: 18px; border: none; border-radius: 8px; font-weight: bold;">上班打卡</button>
-            <button type="button" class="btn-action" data-action="下班" style="flex: 1; padding: 20px; background: #dc3545; color: white; font-size: 18px; border: none; border-radius: 8px; font-weight: bold;">下班打卡</button>
-        </div>
-    </form>
+        .checkin-container {
+            background-color: #1e1e1e;
+            width: 90%;
+            max-width: 400px;
+            padding: 30px 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            border: 1px solid #333;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #e0e0e0;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 30px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 18px 0;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        /* 上班按鈕 - 使用更優質的藍色 */
+        .btn-on {
+            background: #3d85f7;
+        }
+        .btn-on:hover {
+            background: #2b74e6;
+        }
+
+        /* 下班按鈕 - 使用更深邃的紅 */
+        .btn-off {
+            background: #eb4d4b;
+        }
+        .btn-off:hover {
+            background: #d43f3d;
+        }
+
+        .btn-disabled {
+            background: #444 !important;
+            color: #777 !important;
+            cursor: not-allowed;
+        }
+
+        #cooldownMsg {
+            color: #f1c40f;
+            margin-top: 20px;
+            font-weight: 500;
+            font-size: 14px;
+            background: rgba(241, 196, 15, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="checkin-container">
+        <h2>LOVE SALON</h2>
+        <div class="subtitle">GPS 智慧打卡系統</div>
+        
+        <form id="checkInForm">
+            <select id="workerName" required>
+                <option value="">請選擇成員</option>
+                <option value="布萊德">布萊德</option>
+                <option value="小岱">小岱</option>
+                <option value="Una">Una</option>
+                <option value="妹妹">妹妹</option>
+            </select>
+
+            <div class="btn-group">
+                <button type="button" class="btn-action btn-on" data-action="上班">上班</button>
+                <button type="button" class="btn-action btn-off" data-action="下班">下班</button>
+            </div>
+            <p id="cooldownMsg" style="display: none;"></p>
+        </form>
+    </div>
 
     <script>
         const buttons = document.querySelectorAll('.btn-action');
-        
+        const cooldownMsg = document.getElementById('cooldownMsg');
+        const COOLDOWN_TIME = 5 * 60 * 1000; 
+
+        function checkCooldown() {
+            const lastCheckIn = localStorage.getItem('lastCheckInTime');
+            if (lastCheckIn) {
+                const timeLeft = COOLDOWN_TIME - (Date.now() - parseInt(lastCheckIn));
+                if (timeLeft > 0) {
+                    startCooldownTimer(timeLeft);
+                }
+            }
+        }
+
+        function startCooldownTimer(duration) {
+            buttons.forEach(b => {
+                b.disabled = true;
+                b.classList.add('btn-disabled');
+            });
+            cooldownMsg.style.display = 'block';
+            
+            const timer = setInterval(() => {
+                const timeLeft = duration - 1000;
+                duration = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    buttons.forEach(b => {
+                        b.disabled = false;
+                        b.classList.remove('btn-disabled');
+                    });
+                    cooldownMsg.style.display = 'none';
+                    localStorage.removeItem('lastCheckInTime');
+                } else {
+                    const mins = Math.floor(timeLeft / 60000);
+                    const secs = Math.floor((timeLeft % 60000) / 1000);
+                    cooldownMsg.innerText = `已完成打卡，請等待 ${mins}分${secs}秒`;
+                }
+            }, 1000);
+        }
+
         buttons.forEach(btn => {
             btn.onclick = function() {
                 const name = document.getElementById('workerName').value;
-                if (!name) {
-                    alert('請先選擇姓名！');
-                    return;
-                }
+                if (!name) { alert('請先選擇您的名字！'); return; }
 
                 const action = this.getAttribute('data-action');
                 const originalText = this.innerText;
                 
-                // 停用所有按鈕防止重複點擊
                 buttons.forEach(b => b.disabled = true);
-                this.innerText = '處理中...';
+                this.innerText = '驗證中';
 
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     const lat = pos.coords.latitude;
@@ -65,17 +214,23 @@
                     .then(response => response.text())
                     .then(msg => {
                         alert(msg); 
-                        if(msg.includes("成功")) location.reload();
-                        buttons.forEach(b => b.disabled = false);
+                        if(msg.includes("成功")) {
+                            localStorage.setItem('lastCheckInTime', Date.now());
+                            startCooldownTimer(COOLDOWN_TIME);
+                        } else {
+                            buttons.forEach(b => b.disabled = false);
+                        }
                         this.innerText = originalText;
                     });
                 }, () => {
-                    alert('錯誤：請開啟手機 GPS 權限');
+                    alert('失敗：請確保手機已開啟定位權限');
                     buttons.forEach(b => b.disabled = false);
                     this.innerText = originalText;
                 });
             };
         });
+
+        checkCooldown();
     </script>
 </body>
 </html>
