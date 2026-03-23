@@ -8,54 +8,74 @@
 <body style="text-align: center; padding-top: 50px; font-family: sans-serif;">
     <h2>📍 辦公室區域打卡</h2>
     <form id="checkInForm">
-        <select id="workerName" style="width: 80%; padding: 15px; margin-bottom: 20px; font-size: 16px;" required>
+        <select id="workerName" style="width: 85%; padding: 15px; margin-bottom: 25px; font-size: 18px; border-radius: 8px; border: 1px solid #ccc;" required>
             <option value="">請選擇姓名</option>
-            <option value="老王">老王</option>
-            <option value="小明">小明</option>
+            <option value="布萊德">布萊德</option>
+            <option value="小岱">小岱</option>
+            <option value="Una">Una</option>
+            <option value="妹妹">妹妹</option>
         </select><br>
-        <button type="submit" id="btn" style="width: 80%; padding: 20px; background: #007bff; color: white; font-size: 18px; border: none; border-radius: 8px;">取得位置並打卡</button>
+
+        <div style="display: flex; justify-content: center; gap: 15px; width: 85%; margin: 0 auto;">
+            <button type="button" class="btn-action" data-action="上班" style="flex: 1; padding: 20px; background: #28a745; color: white; font-size: 18px; border: none; border-radius: 8px; font-weight: bold;">上班打卡</button>
+            <button type="button" class="btn-action" data-action="下班" style="flex: 1; padding: 20px; background: #dc3545; color: white; font-size: 18px; border: none; border-radius: 8px; font-weight: bold;">下班打卡</button>
+        </div>
     </form>
 
     <script>
-        document.getElementById('checkInForm').onsubmit = function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn');
-            btn.disabled = true; btn.innerText = '定位與驗證中...';
+        const buttons = document.querySelectorAll('.btn-action');
+        
+        buttons.forEach(btn => {
+            btn.onclick = function() {
+                const name = document.getElementById('workerName').value;
+                if (!name) {
+                    alert('請先選擇姓名！');
+                    return;
+                }
 
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
+                const action = this.getAttribute('data-action');
+                const originalText = this.innerText;
                 
-                let ip = "未知";
-                try {
-                    const res = await fetch('https://api.ipify.org?format=json');
-                    const d = await res.json(); ip = d.ip;
-                } catch(err) {}
+                // 停用所有按鈕防止重複點擊
+                buttons.forEach(b => b.disabled = true);
+                this.innerText = '處理中...';
 
-                const url = 'https://script.google.com/macros/s/AKfycbwCltaFsKvURwo-WUllC5eHvPflY1k-V7UZO4-3SDDNlnzEZn5AdL4MUdUC7WyKB4fr/exec';
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    
+                    let ip = "未知";
+                    try {
+                        const res = await fetch('https://api.ipify.org?format=json');
+                        const d = await res.json(); ip = d.ip;
+                    } catch(err) {}
 
-                // 改用傳送資料並接收回傳訊息
-                fetch(url, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        name: document.getElementById('workerName').value,
-                        action: "上班",
-                        location: lat + "," + lon,
-                        ip: ip,
-                        device: navigator.userAgent
+                    const url = 'https://script.google.com/macros/s/AKfycbwCltaFsKvURwo-WUllC5eHvPflY1k-V7UZO4-3SDDNlnzEZn5AdL4MUdUC7WyKB4fr/exec';
+
+                    fetch(url, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            name: name,
+                            action: action,
+                            location: lat + "," + lon,
+                            ip: ip,
+                            device: navigator.userAgent
+                        })
                     })
-                })
-                .then(response => response.text())
-                .then(msg => {
-                    alert(msg); // 顯示 Google 回傳的「成功」或「距離太遠」
-                    if(msg.includes("成功")) location.reload();
-                    btn.disabled = false; btn.innerText = '取得位置並打卡';
+                    .then(response => response.text())
+                    .then(msg => {
+                        alert(msg); 
+                        if(msg.includes("成功")) location.reload();
+                        buttons.forEach(b => b.disabled = false);
+                        this.innerText = originalText;
+                    });
+                }, () => {
+                    alert('錯誤：請開啟手機 GPS 權限');
+                    buttons.forEach(b => b.disabled = false);
+                    this.innerText = originalText;
                 });
-            }, () => {
-                alert('錯誤：請開啟手機 GPS 權限');
-                btn.disabled = false; btn.innerText = '重試';
-            });
-        };
+            };
+        });
     </script>
 </body>
 </html>
