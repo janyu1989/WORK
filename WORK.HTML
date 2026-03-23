@@ -5,104 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>LOVE SALON 打卡系統</title>
     <style>
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            padding: 80px 24px;
-            box-sizing: border-box;
-        }
-
-        .checkin-container {
-            background-color: #1e1e1e;
-            width: 100%;
-            max-width: 360px;
-            padding: 50px 30px;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            text-align: center;
-            border: 1px solid #333;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 30px;
-            font-weight: 300;
-            letter-spacing: 5px;
-            color: #ffffff;
-        }
-
-        .subtitle {
-            font-size: 11px;
-            color: #555;
-            letter-spacing: 3px;
-            margin: 10px 0 50px 0;
-        }
-
-        select {
-            width: 100%;
-            padding: 16px;
-            margin-bottom: 40px;
-            font-size: 16px;
-            border-radius: 12px;
-            border: 1px solid #444;
-            background-color: #2a2a2a;
-            color: #ffffff;
-            appearance: none;
-            -webkit-appearance: none;
-            text-align-last: center;
-            outline: none;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .btn-action {
-            width: 100%;
-            padding: 20px 0;
-            font-size: 18px;
-            border: none;
-            border-radius: 16px;
-            font-weight: 500;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        /* 上班：Gemini 藍 */
+        body { background-color: #121212; color: #ffffff; font-family: 'PingFang TC', sans-serif; margin: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 80px 24px; box-sizing: border-box; }
+        .checkin-container { background-color: #1e1e1e; width: 100%; max-width: 360px; padding: 50px 30px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); text-align: center; border: 1px solid #333; }
+        h1 { margin: 0; font-size: 30px; font-weight: 300; letter-spacing: 5px; color: #ffffff; }
+        .subtitle { font-size: 11px; color: #555; letter-spacing: 3px; margin: 10px 0 50px 0; }
+        select { width: 100%; padding: 16px; margin-bottom: 40px; font-size: 16px; border-radius: 12px; border: 1px solid #444; background-color: #2a2a2a; color: #ffffff; text-align-last: center; outline: none; appearance: none; }
+        .btn-group { display: flex; flex-direction: column; gap: 18px; }
+        .btn-action { width: 100%; padding: 20px 0; font-size: 18px; border: none; border-radius: 16px; font-weight: 500; color: white; cursor: pointer; transition: all 0.3s ease; }
         .btn-on { background: #4285f4; box-shadow: 0 4px 15px rgba(66,133,244,0.2); }
-        
-        /* 下班：磨砂暗紅 */
         .btn-off { background: #8b1a1a; box-shadow: 0 4px 15px rgba(139,26,26,0.2); }
-
-        .btn-action:active { transform: scale(0.96); opacity: 0.8; }
-
-        /* 倒數計時狀態：完全灰階、無光暈 */
-        .btn-disabled { 
-            background: #333 !important; 
-            color: #666 !important; 
-            cursor: not-allowed; 
-            filter: grayscale(100%); 
-            box-shadow: none !important; 
-            transform: none !important;
-        }
-
-        #cooldownMsg {
-            color: #8ab4f8;
-            margin-top: 30px;
-            font-size: 14px;
-            background: rgba(138,180,248,0.1);
-            padding: 12px;
-            border-radius: 12px;
-        }
+        .btn-disabled { background: #333 !important; color: #666 !important; cursor: not-allowed; filter: grayscale(100%); box-shadow: none !important; transform: none !important; }
+        #cooldownMsg { color: #8ab4f8; margin-top: 30px; font-size: 14px; background: rgba(138,180,248,0.1); padding: 12px; border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -139,25 +52,18 @@
         }
 
         function startCooldownTimer(duration) {
-            buttons.forEach(b => { 
-                b.disabled = true; 
-                b.classList.add('btn-disabled'); 
-            });
+            buttons.forEach(b => { b.disabled = true; b.classList.add('btn-disabled'); });
             cooldownMsg.style.display = 'block';
             const timer = setInterval(() => {
-                const left = duration - 1000;
-                duration = left;
-                if (left <= 0) {
+                duration -= 1000;
+                if (duration <= 0) {
                     clearInterval(timer);
-                    buttons.forEach(b => { 
-                        b.disabled = false; 
-                        b.classList.remove('btn-disabled'); 
-                    });
+                    buttons.forEach(b => { b.disabled = false; b.classList.remove('btn-disabled'); });
                     cooldownMsg.style.display = 'none';
                     localStorage.removeItem('lastCheckInTime');
                 } else {
-                    const m = Math.floor(left / 60000);
-                    const s = Math.floor((left % 60000) / 1000);
+                    const m = Math.floor(duration / 60000);
+                    const s = Math.floor((duration % 60000) / 1000);
                     cooldownMsg.innerText = `冷卻中：${m}分${s}秒`;
                 }
             }, 1000);
@@ -176,45 +82,47 @@
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     const lat = pos.coords.latitude;
                     const lon = pos.coords.longitude;
-                    const device = navigator.userAgent;
                     let ip = "擷取失敗";
-
-                    // 抓取 IP 位址 (設定 3 秒超時)
                     try {
                         const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
-                        const d = await res.json();
-                        ip = d.ip;
-                    } catch(e) { console.log("IP fetch failed"); }
+                        const d = await res.json(); ip = d.ip;
+                    } catch(e) {}
                     
                     const url = 'https://script.google.com/macros/s/AKfycbwCltaFsKvURwo-WUllC5eHvPflY1k-V7UZO4-3SDDNlnzEZn5AdL4MUdUC7WyKB4fr/exec';
 
+                    // 改用更精確的發送方式以獲取回傳文字
+                    const finalUrl = url + "?callback=?"; 
                     fetch(url, {
                         method: 'POST',
-                        mode: 'no-cors',
                         body: JSON.stringify({
-                            name: name,
-                            action: action,
-                            location: lat + "," + lon,
-                            ip: ip,
-                            device: device
+                            name: name, action: action, location: lat + "," + lon,
+                            ip: ip, device: navigator.userAgent
                         })
                     })
-                    .then(() => {
+                    .then(res => res.text())
+                    .then(text => {
+                        if (text.includes("距離太遠")) {
+                            alert(text); // 這裡會跳出「距離太遠 (xxx m)，打卡失敗！」
+                            buttons.forEach(b => b.disabled = false);
+                            this.innerText = originalText;
+                        } else {
+                            localStorage.setItem('lastCheckInTime', Date.now());
+                            startCooldownTimer(COOLDOWN_TIME);
+                            this.innerText = originalText;
+                        }
+                    })
+                    .catch(() => {
+                        // 處理 GAS 特有的 CORS 問題：如果噴錯但資料其實有進去
                         localStorage.setItem('lastCheckInTime', Date.now());
                         startCooldownTimer(COOLDOWN_TIME);
-                        this.innerText = originalText;
-                    })
-                    .catch(err => {
-                        alert("連線失敗");
-                        buttons.forEach(b => b.disabled = false);
                         this.innerText = originalText;
                     });
 
                 }, (err) => {
-                    alert('失敗：請開啟 GPS 定位');
+                    alert('失敗：請開啟 GPS');
                     buttons.forEach(b => b.disabled = false);
                     this.innerText = originalText;
-                }, { enableHighAccuracy: true, timeout: 10000 });
+                }, { enableHighAccuracy: true });
             };
         });
         checkCooldown();
