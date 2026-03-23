@@ -14,19 +14,34 @@
             justify-content: center;
             align-items: flex-start;
             min-height: 100vh;
-            padding: 60px 20px; /* 增加上下與左右的基礎留白 */
+            padding: 80px 20px;
             box-sizing: border-box;
         }
 
         .checkin-container {
             background-color: #1e1e1e;
             width: 100%;
-            max-width: 360px; /* 縮小最大寬度，讓左右留白更明顯 */
+            max-width: 360px;
             padding: 40px 25px;
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
             text-align: center;
             border: 1px solid #333;
+        }
+
+        /* LOGO 區塊 */
+        .logo-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo-image {
+            max-width: 180px; /* 控制 Logo 寬度 */
+            height: auto;
+            filter: invert(100%) brightness(120%) contrast(110%); /* 強制反白，並調整亮度和對比度 */
+            drop-shadow(0 0 10px rgba(61, 133, 247, 0.4)); /* 增加柔和藍色光暈 */
         }
 
         h2 {
@@ -39,15 +54,14 @@
 
         .subtitle {
             font-size: 14px;
-            color: #777;
-            margin-bottom: 40px; /* 增加副標題與內容的距離 */
+            color: #888;
+            margin-bottom: 40px;
         }
 
-        /* 下拉選單樣式 */
         select {
             width: 100%;
             padding: 16px;
-            margin-bottom: 45px; /* 增加選單與按鈕之間的間距 */
+            margin-bottom: 45px;
             font-size: 17px;
             border-radius: 12px;
             border: 1px solid #444;
@@ -59,17 +73,16 @@
             outline: none;
         }
 
-        /* 按鈕區域改為垂直排列 */
         .btn-group {
             display: flex;
-            flex-direction: column; /* 改為垂直 */
-            gap: 18px; /* 按鈕之間的上下間距 */
+            flex-direction: column;
+            gap: 18px;
             width: 100%;
         }
 
         .btn-action {
             width: 100%;
-            padding: 20px 0; /* 增加高度更適合點擊 */
+            padding: 20px 0;
             font-size: 19px;
             border: none;
             border-radius: 12px;
@@ -84,13 +97,11 @@
             transform: scale(0.97);
         }
 
-        /* 上班按鈕 */
         .btn-on {
             background: #3d85f7;
             box-shadow: 0 4px 15px rgba(61, 133, 247, 0.3);
         }
 
-        /* 下班按鈕 */
         .btn-off {
             background: #eb4d4b;
             box-shadow: 0 4px 15px rgba(235, 77, 75, 0.3);
@@ -116,7 +127,10 @@
 </head>
 <body>
     <div class="checkin-container">
-        <h2>LOVE SALON</h2>
+        <div class="logo-container">
+            <img src="https://example.com/your/path/to/image_6.png" alt="LOVE SALON LOGO" class="logo-image">
+        </div>
+        
         <div class="subtitle">GPS 智慧打卡系統</div>
         
         <form id="checkInForm">
@@ -212,10 +226,15 @@
                     })
                     .then(response => response.text())
                     .then(msg => {
+                        // 處理回傳訊息，增加距離提示邏輯
                         alert(msg); 
                         if(msg.includes("成功")) {
                             localStorage.setItem('lastCheckInTime', Date.now());
                             startCooldownTimer(COOLDOWN_TIME);
+                        } else if(msg.includes("距離")) {
+                            // 當 Apps Script 修改後，這裡可以彈出精確距離
+                            // 目前Apps Script尚未修改，所以先保持原本alert
+                            // alert('您距離辦公室太遠，請移動到店內再試');
                         } else {
                             buttons.forEach(b => b.disabled = false);
                         }
