@@ -6,7 +6,7 @@
     <title>LOVE SALON 打卡系統</title>
     <style>
         body {
-            background-color: #121212; /* 深黑色背景 */
+            background-color: #121212;
             color: #ffffff;
             font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
             margin: 0;
@@ -19,32 +19,29 @@
         }
 
         .checkin-container {
-            background-color: #1e1e1e; /* 深灰卡片 */
+            background-color: #1e1e1e;
             width: 100%;
             max-width: 360px;
             padding: 50px 30px;
             border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
             text-align: center;
             border: 1px solid #333;
         }
 
-        /* 純文字 Logo 風格 */
         h1 {
             margin: 0;
-            font-size: 32px;
-            font-weight: 300; /* 輕量字體更優雅 */
-            letter-spacing: 4px;
+            font-size: 30px;
+            font-weight: 300;
+            letter-spacing: 5px;
             color: #ffffff;
-            text-transform: uppercase;
         }
 
         .subtitle {
-            font-size: 12px;
-            color: #666;
-            letter-spacing: 2px;
-            margin-top: 10px;
-            margin-bottom: 50px;
+            font-size: 11px;
+            color: #555;
+            letter-spacing: 3px;
+            margin: 10px 0 50px 0;
         }
 
         select {
@@ -58,19 +55,19 @@
             color: #ffffff;
             appearance: none;
             -webkit-appearance: none;
-            text-align-last: center; /* 文字置中 */
+            text-align-last: center;
             outline: none;
         }
 
         .btn-group {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 18px;
         }
 
         .btn-action {
             width: 100%;
-            padding: 22px 0;
+            padding: 20px 0;
             font-size: 18px;
             border: none;
             border-radius: 16px;
@@ -80,35 +77,20 @@
             transition: all 0.3s ease;
         }
 
-        /* 推薦配色：Gemini 藍 */
-        .btn-on {
-            background: #4285f4; 
-            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.2);
-        }
+        /* 上班：Gemini 藍 */
+        .btn-on { background: #4285f4; box-shadow: 0 4px 15px rgba(66,133,244,0.2); }
+        
+        /* 下班：磨砂暗紅 */
+        .btn-off { background: #8b1a1a; box-shadow: 0 4px 15px rgba(139,26,26,0.2); }
 
-        /* 推薦配色：消光深灰 (取代亮紅) */
-        .btn-off {
-            background: #3c4043; 
-            border: 1px solid #5f6368;
-        }
-
-        .btn-action:active {
-            transform: scale(0.96);
-            opacity: 0.8;
-        }
-
-        .btn-disabled {
-            background: #222 !important;
-            color: #444 !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
+        .btn-action:active { transform: scale(0.96); opacity: 0.8; }
+        .btn-disabled { background: #222 !important; color: #444 !important; cursor: not-allowed; }
 
         #cooldownMsg {
-            color: #8ab4f8; /* 淺藍色提示 */
+            color: #8ab4f8;
             margin-top: 30px;
             font-size: 14px;
-            background: rgba(138, 180, 248, 0.1);
+            background: rgba(138,180,248,0.1);
             padding: 12px;
             border-radius: 12px;
         }
@@ -118,7 +100,6 @@
     <div class="checkin-container">
         <h1>LOVE SALON</h1>
         <div class="subtitle">STAFF ONLY</div>
-        
         <form id="checkInForm">
             <select id="workerName" required>
                 <option value="">選擇成員</option>
@@ -127,7 +108,6 @@
                 <option value="Una">Una</option>
                 <option value="妹妹">妹妹</option>
             </select>
-
             <div class="btn-group">
                 <button type="button" class="btn-action btn-on" data-action="上班">上班</button>
                 <button type="button" class="btn-action btn-off" data-action="下班">下班</button>
@@ -137,15 +117,14 @@
     </div>
 
     <script>
-        // 腳本邏輯保持不變，維持 GPS 與 5 分鐘冷卻功能
         const buttons = document.querySelectorAll('.btn-action');
         const cooldownMsg = document.getElementById('cooldownMsg');
         const COOLDOWN_TIME = 5 * 60 * 1000; 
 
         function checkCooldown() {
-            const lastCheckIn = localStorage.getItem('lastCheckInTime');
-            if (lastCheckIn) {
-                const timeLeft = COOLDOWN_TIME - (Date.now() - parseInt(lastCheckIn));
+            const lastTime = localStorage.getItem('lastCheckInTime');
+            if (lastTime) {
+                const timeLeft = COOLDOWN_TIME - (Date.now() - parseInt(lastTime));
                 if (timeLeft > 0) startCooldownTimer(timeLeft);
             }
         }
@@ -154,55 +133,72 @@
             buttons.forEach(b => { b.disabled = true; b.classList.add('btn-disabled'); });
             cooldownMsg.style.display = 'block';
             const timer = setInterval(() => {
-                const timeLeft = duration - 1000;
-                duration = timeLeft;
-                if (timeLeft <= 0) {
+                const left = duration - 1000;
+                duration = left;
+                if (left <= 0) {
                     clearInterval(timer);
                     buttons.forEach(b => { b.disabled = false; b.classList.remove('btn-disabled'); });
                     cooldownMsg.style.display = 'none';
                     localStorage.removeItem('lastCheckInTime');
                 } else {
-                    const mins = Math.floor(timeLeft / 60000);
-                    const secs = Math.floor((timeLeft % 60000) / 1000);
-                    cooldownMsg.innerText = `冷卻中：${mins}分${secs}秒`;
+                    const m = Math.floor(left / 60000);
+                    const s = Math.floor((left % 60000) / 1000);
+                    cooldownMsg.innerText = `冷卻中：${m}分${s}秒`;
                 }
             }, 1000);
         }
 
         buttons.forEach(btn => {
-            btn.onclick = function() {
+            btn.onclick = async function() {
                 const name = document.getElementById('workerName').value;
                 if (!name) { alert('請選擇名字'); return; }
                 const action = this.getAttribute('data-action');
-                const originalText = this.innerText;
+                
                 buttons.forEach(b => b.disabled = true);
-                this.innerText = '驗證中...';
+                this.innerText = 'GPS 驗證中...';
 
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     const lat = pos.coords.latitude;
                     const lon = pos.coords.longitude;
+                    
+                    // 獲取 IP
+                    let ip = "未知";
+                    try {
+                        const res = await fetch('https://api.ipify.org?format=json');
+                        const d = await res.json(); ip = d.ip;
+                    } catch(e) {}
+
                     const url = 'https://script.google.com/macros/s/AKfycbwCltaFsKvURwo-WUllC5eHvPflY1k-V7UZO4-3SDDNlnzEZn5AdL4MUdUC7WyKB4fr/exec';
 
                     fetch(url, {
                         method: 'POST',
-                        body: JSON.stringify({ name: name, action: action, location: lat + "," + lon })
+                        mode: 'no-cors', // 修正跨域可能導致的卡死
+                        body: JSON.stringify({
+                            name: name,
+                            action: action,
+                            location: lat + "," + lon,
+                            ip: ip,
+                            device: navigator.userAgent
+                        })
                     })
-                    .then(response => response.text())
-                    .then(msg => {
-                        alert(msg); 
-                        if(msg.includes("成功")) {
-                            localStorage.setItem('lastCheckInTime', Date.now());
-                            startCooldownTimer(COOLDOWN_TIME);
-                        } else {
-                            buttons.forEach(b => b.disabled = false);
-                        }
-                        this.innerText = originalText;
+                    .then(() => {
+                        // 因為 no-cors 模式拿不到回傳字串，我們直接判斷為發送成功
+                        alert("打卡請求已送出！請檢查試算表。");
+                        localStorage.setItem('lastCheckInTime', Date.now());
+                        startCooldownTimer(COOLDOWN_TIME);
+                        this.innerText = action;
+                    })
+                    .catch(err => {
+                        alert("網路錯誤，請重試");
+                        buttons.forEach(b => b.disabled = false);
+                        this.innerText = action;
                     });
-                }, () => {
-                    alert('失敗：請開啟 GPS');
+
+                }, (err) => {
+                    alert('請開啟手機 GPS 並允許瀏覽器定位權限');
                     buttons.forEach(b => b.disabled = false);
-                    this.innerText = originalText;
-                });
+                    this.innerText = action;
+                }, { enableHighAccuracy: true, timeout: 10000 }); // 增加超時設定
             };
         });
         checkCooldown();
