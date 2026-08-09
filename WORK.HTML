@@ -16,6 +16,9 @@
         .btn-off { background: #8b1a1a; box-shadow: 0 4px 15px rgba(139,26,26,0.2); }
         .btn-disabled { background: #333 !important; color: #666 !important; cursor: not-allowed; filter: grayscale(100%); box-shadow: none !important; transform: none !important; }
         #cooldownMsg { color: #8ab4f8; margin-top: 30px; font-size: 14px; background: rgba(138,180,248,0.1); padding: 12px; border-radius: 12px; }
+        #statusMsg { margin-top: 20px; font-size: 14px; padding: 12px; border-radius: 12px; display: none; }
+        .status-ok { background: rgba(66,133,244,0.15); color: #8ab4f8; }
+        .status-reject { background: rgba(139,26,26,0.2); color: #ff8a8a; }
     </style>
 </head>
 <body>
@@ -34,13 +37,19 @@
                 <button type="button" class="btn-action btn-off" data-action="下班">下班</button>
             </div>
             <p id="cooldownMsg" style="display: none;"></p>
+            <p id="statusMsg"></p>
         </form>
     </div>
 
     <script>
         const buttons = document.querySelectorAll('.btn-action');
         const cooldownMsg = document.getElementById('cooldownMsg');
-        const COOLDOWN_TIME = 2 * 60 * 1000; 
+        const statusMsg = document.getElementById('statusMsg');
+        const workerSelect = document.getElementById('workerName');
+        const COOLDOWN_TIME = 2 * 60 * 1000;
+
+        // 已更新為你的部署網址
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4N-kKRZ3MkK713MCk_OT7Lrj-6go-9E2cIcihT-ty7SNhQt46wudSqnZhBRiVrsoP/exec';
 
         // 取得或產生設備唯一識別碼
         function getUUID() {
@@ -52,15 +61,41 @@
             return uuid;
         }
 
-        function checkCooldown() {
-            const lastTime = localStorage.getItem('lastCheckInTime');
-            if (lastTime) {
-                const timeLeft = COOLDOWN_TIME - (Date.now() - parseInt(lastTime));
-                if (timeLeft > 0) startCooldownTimer(timeLeft);
-            }
+        // 冷卻改為跟姓名綁定
+        function getCooldownKey(name) {
+            return 'lastCheckInTime_' + name;
         }
 
-        function startCooldownTimer(duration) {
+        function showStatus(message, isOk) {
+            statusMsg.innerText = message;
+            statusMsg.className = isOk ? 'status-ok' : 'status-reject';
+            statusMsg.style.display = 'block';
+        }
+
+        function clearStatus() {
+            statusMsg.style.display = 'none';
+        }
+
+        function checkCooldown() {
+            const name = workerSelect.value;
+            if (!name) {
+                buttons.forEach(b => { b.disabled = false; b.classList.remove('btn-disabled'); });
+                cooldownMsg.style.display = 'none';
+                return;
+            }
+            const lastTime = localStorage.getItem(getCooldownKey(name));
+            if (lastTime) {
+                const timeLeft = COOLDOWN_TIME - (Date.now() - parseInt(lastTime));
+                if (timeLeft > 0) {
+                    startCooldownTimer(timeLeft, name);
+                    return;
+                }
+            }
+            buttons.forEach(b => { b.disabled = false; b.classList.remove('btn-disabled'); });
+            cooldownMsg.style.display = 'none';
+        }
+
+        function startCooldownTimer(duration, name) {
             buttons.forEach(b => { b.disabled = true; b.classList.add('btn-disabled'); });
             cooldownMsg.style.display = 'block';
             const timer = setInterval(() => {
@@ -69,7 +104,7 @@
                     clearInterval(timer);
                     buttons.forEach(b => { b.disabled = false; b.classList.remove('btn-disabled'); });
                     cooldownMsg.style.display = 'none';
-                    localStorage.removeItem('lastCheckInTime');
+                    localStorage.removeItem(getCooldownKey(name));
                 } else {
                     const m = Math.floor(duration / 60000);
                     const s = Math.floor((duration % 60000) / 1000);
@@ -78,29 +113,33 @@
             }, 1000);
         }
 
+        workerSelect.addEventListener('change', () => {
+            clearStatus();
+            checkCooldown();
+        });
+
         buttons.forEach(btn => {
-            btn.onclick = async function() {
-                const name = document.getElementById('workerName').value;
+            btn.onclick = function() {
+                const name = workerSelect.value;
                 if (!name) { alert('請選擇名字'); return; }
                 const action = this.getAttribute('data-action');
-                
+
+                clearStatus();
                 buttons.forEach(b => b.disabled = true);
                 const originalText = this.innerText;
-                this.innerText = '驗證中...';
+                this.innerText = '定位中...';
 
                 navigator.geolocation.getCurrentPosition(async (pos) => {
+                    this.innerText = '驗證中...';
+
                     let ip = "擷取失敗";
                     try {
                         const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
                         const d = await res.json(); ip = d.ip;
-                    } catch(e) {}
-                    
-                    // 已更新為你的新部署網址
-                    const url = 'https://script.google.com/macros/s/AKfycbxKwQsvKAslEuhnuVKMO2CKoYWopnLYCzm_ukwTkuqh5D_1stU6S_mwqw5s2qcrG8az/exec';
+                    } catch (e) {}
 
-                    fetch(url, {
+                    fetch(SCRIPT_URL, {
                         method: 'POST',
-                        mode: 'no-cors',
                         body: JSON.stringify({
                             name: name,
                             action: action,
@@ -109,23 +148,33 @@
                             device: navigator.userAgent,
                             uuid: getUUID()
                         })
-                    }).then(() => {
-                        localStorage.setItem('lastCheckInTime', Date.now());
-                        startCooldownTimer(COOLDOWN_TIME);
+                    })
+                    .then(res => res.json())
+                    .then(data => {
                         this.innerText = originalText;
-                    }).catch(err => {
-                        alert("連線失敗");
+                        if (data.status === 'ok') {
+                            showStatus(data.message, true);
+                            localStorage.setItem(getCooldownKey(name), Date.now());
+                            startCooldownTimer(COOLDOWN_TIME, name);
+                        } else {
+                            showStatus(data.message || '打卡未成功', false);
+                            buttons.forEach(b => b.disabled = false);
+                        }
+                    })
+                    .catch(err => {
+                        showStatus('連線失敗，請確認網路後重試', false);
                         buttons.forEach(b => b.disabled = false);
                         this.innerText = originalText;
                     });
 
                 }, (err) => {
-                    alert('失敗：請開啟 GPS 定位');
+                    showStatus('定位失敗：請開啟 GPS 定位後再試一次', false);
                     buttons.forEach(b => b.disabled = false);
                     this.innerText = originalText;
-                }, { enableHighAccuracy: true, timeout: 10000 });
+                }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
             };
         });
+
         checkCooldown();
     </script>
 </body>
